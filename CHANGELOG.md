@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented here.
 
+## 0.5.2 - DSH 0.2.x session binding
+
+### Fixed
+
+- The floating capsule no longer goes session-blind on the 0.2.x host. It read
+  the shown session from a `current` scalar on the session-list state, which
+  0.1.7 exposed and 0.2.x removed. On 0.2.1-rc.2 the selector therefore always
+  returned `undefined`: the capsule still mounted and logged nothing, but it
+  showed `当前会话 无`, disabled every per-session mode button, and never issued
+  a single `/_dsh/requirements-alignment/status` request — so the panel never
+  reflected the open session. `selectCurrentSessionId()` now prefers `current`
+  when a host provides it and otherwise resolves the session the shell itself
+  considers current, `retainedBy.mainView > 0` (the same predicate
+  `dsh-client-ui-cordis` uses and `dsh-client-ui-session` uses to reset its main
+  binding). One build now binds correctly on both host lines.
+
+### Added
+
+- Regression tests for both session-list shapes (`current` and
+  `byId` + `retainedBy.mainView`) plus the no-retained-session and subagent-row
+  cases, and a render check against the 0.2.x shape.
+
+### Verified
+
+- `pnpm check` green against 0.2.1-rc.2, and the packed tarball installed into a
+  scratch profile, booted on the real host, and the capsule was observed binding
+  to the open session through live `/_dsh/requirements-alignment/status` calls.
 ## 0.5.1 - DSH 0.2.1-rc.2
 
 ### Added

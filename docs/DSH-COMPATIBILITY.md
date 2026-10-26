@@ -1,5 +1,44 @@
 # DSH compatibility check — 2026-10-26
 
+## Release: 0.5.2
+
+Target: **DeepSeek Harness 0.2.1-rc.2**. Drop-in successor to 0.5.1; the install
+metadata is unchanged, only the client session binding was repaired.
+
+- **The session store lost its `current` scalar.** 0.1.7 exposed the shown
+  session directly on the session-list state, and the capsule's `useSessions`
+  selector read `state.current`. 0.2.x replaces that with
+  `{ ids, byId, phase, projectionsBySession }` where every row is
+  `{ id, displayTitle, running, retainedBy, blank, updatedAt, formatStatus, ... }`.
+  On 0.2.1-rc.2 the old selector always produced `undefined`, so the capsule
+  mounted, logged nothing, and then: showed `当前会话 无`, disabled the
+  per-session 自动/手动/关闭/重置 controls, and issued **zero**
+  `/_dsh/requirements-alignment/status` requests — the panel never followed the
+  open session. The `/align` commands and the management API were unaffected;
+  only the floating capsule was blind.
+- **Current session is derived from retention, not guessed.**
+  `selectCurrentSessionId()` still prefers `current` when a host provides it, and
+  otherwise selects the row with `retainedBy.mainView > 0`. That is the host's
+  own definition of "the session the main view shows": `dsh-client-ui-cordis`
+  selects its current session with exactly that predicate, and
+  `dsh-client-ui-session` uses it to decide when to reset its main binding. When
+  no row is retained the result stays `undefined` — subagent rows never become
+  current and the capsule never builds `?sessionId=undefined`.
+
+Verification for this release:
+
+- `pnpm run check` green against 0.2.1-rc.2 (typecheck ×2, ESLint, build, the
+  full test suite now including both session-list shapes, real-host smoke).
+- The packed tarball was installed from its **release URL** into a disposable
+  scratch profile, booted on the real host with `--port 0`, and the running Web UI
+  was driven over CDP: no exceptions, console errors or failed requests, and the
+  capsule was observed binding to the open session (live
+  `/_dsh/requirements-alignment/status` calls, label and controls following the
+  active session).
+- The desktop profile was never installed into or modified.
+
+---
+
 ## Release: 0.5.1
 
 Target: **DeepSeek Harness 0.2.1-rc.2** (the desktop `0.2.1-rc.2` host). This is
@@ -26,8 +65,10 @@ What had to change for 0.2.x:
   (`root`, `compression`, `listConcurrency`).
 - **Client slot/global-props contracts are unchanged.** `ui-layout` still
   publishes `'shell.overlay': { kind: 'list'; scope: 'root' }` and `ui-session`
-  still threads `useSessions` through `GlobalStandardProps`, so the capsule,
-  `/align` commands and the settings form needed no client work.
+  still threads `useSessions` through `GlobalStandardProps`, so the capsule slot,
+  the `/align` commands and the settings form needed no *contract* work. The
+  **payload** of the session store did change — see 0.5.2 below; 0.5.1 shipped
+  with a capsule that mounted but never bound to a session on this host.
 - Two version *guards* (a test and the host smoke script) hard-coded
   `0.1.7-rc.2`. They now compare against this package's own `devDependencies`
   pin, so the guard still fails if the graph drifts off the audited line.

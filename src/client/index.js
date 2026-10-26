@@ -277,6 +277,37 @@ function applyCapsulePosition(el, pos, size, viewport) {
 // ------------------------------------------------------------------- capsule
 
 /**
+ * Resolve the session the shell currently shows out of the session-list state.
+ *
+ * 0.1.x exposed that identity as a `current` scalar right on the state. 0.2.x
+ * dropped it: the list is `{ ids, byId, phase, projectionsBySession }` and the
+ * shell marks the session it displays with the retention counters that every
+ * other consumer reads — `dsh-client-ui-cordis` selects the current session as
+ * `retainedBy.mainView > 0`, and `dsh-client-ui-session`'s own main binding
+ * reset uses the very same predicate. Both shapes are tolerated so one build
+ * runs on either host; when neither signal fires we stay session-less instead
+ * of guessing (never build `?sessionId=undefined`).
+ *
+ * @param {{ current?: string, byId?: Object }} state - session-list snapshot.
+ * @returns {string | undefined} current session id, if any.
+ */
+function selectCurrentSessionId(state) {
+  if (state == null) return undefined;
+  if (state.current !== undefined) return state.current;
+  const rows = state.byId;
+  if (rows == null) return undefined;
+  const ids = Object.keys(rows);
+  for (let i = 0; i < ids.length; i += 1) {
+    const row = rows[ids[i]];
+    if (row == null || row.retainedBy == null) continue;
+    const retained = row.retainedBy.mainView;
+    if (retained == null || retained <= 0) continue;
+    return row.id !== undefined ? row.id : ids[i];
+  }
+  return undefined;
+}
+
+/**
  * The floating manager. Root-scope (shell.overlay) so it stays mounted across
  * session switches: the current session id arrives through the framework
  * `useSessions` standard kit, and the two mode layers are manipulated through
@@ -292,7 +323,7 @@ function AlignmentCapsule(props) {
 
   const currentSessionId =
     typeof useSessions === 'function'
-      ? useSessions((s) => (s && s.current !== undefined ? s.current : undefined))
+      ? useSessions(selectCurrentSessionId)
       : undefined;
 
   // The LIVE session identity for async continuations: a closure captures the
@@ -716,6 +747,7 @@ module.exports = {
   apply,
   inject,
   AlignmentCapsule,
+  selectCurrentSessionId,
   modeColor,
   dictionaries: { zh, en },
   clampPosition,

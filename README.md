@@ -8,7 +8,7 @@
 
 **You decide the direction. The agent decides the engineering.**
 
-Current release: **v0.5.1**, targeting DeepSeek Harness **0.2.1-rc.2**. Requires Node.js **>=22.18.0**. See the [compatibility report](docs/DSH-COMPATIBILITY.md) for verified behavior and limits.
+Current release: **v0.5.2**, targeting DeepSeek Harness **0.2.1-rc.2**. Requires Node.js **>=22.18.0**. See the [compatibility report](docs/DSH-COMPATIBILITY.md) for verified behavior and limits.
 
 ## The problem
 

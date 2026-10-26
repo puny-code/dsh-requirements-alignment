@@ -66,6 +66,7 @@ const fakeReact = { createElement, useState, useCallback, useEffect, useRef };
 interface ClientExports {
   apply: (ctx?: unknown) => unknown;
   AlignmentCapsule: (props: Record<string, unknown>) => unknown;
+  selectCurrentSessionId: (state: unknown) => string | undefined;
   modeColor: (mode: string) => string;
   dictionaries: { zh: Record<string, string>; en: Record<string, string> };
   clampPosition: (
@@ -115,7 +116,7 @@ GS.window = {
 await import('../lib/client.js');
 
 const clientExports = (GS.window as Record<string, unknown>).__dshClientExports as ClientExports;
-const { apply, AlignmentCapsule, modeColor, dictionaries, clampPosition, readCapsulePosition, writeCapsulePosition } = clientExports;
+const { apply, AlignmentCapsule, selectCurrentSessionId, modeColor, dictionaries, clampPosition, readCapsulePosition, writeCapsulePosition } = clientExports;
 
 after(() => {
   delete GS.window;
@@ -434,6 +435,76 @@ test('client: capsule render never crashes with the full simulated payload path'
   (capsule!.props!.onClick as () => void)();
   facts = renderTree(root);
   assert.equal(facts.filter((f) => f.kind === 'element' && f.tag === 'button').length >= 7, true, 'expanded capsule renders the full control set');
+});
+
+// ------------------------------------ host 0.2.x session-list shape (v0.5.2)
+//
+// DSH 0.1.x exposed the shown session as a `current` scalar on the session-list
+// state, so the capsule could read it straight off the selector argument. 0.2.x
+// dropped that scalar: the list is `{ ids, byId, phase, projectionsBySession }`
+// and the shell marks the displayed session with the retention counters every
+// other consumer reads (`retainedBy.mainView > 0`). Without the fallback the
+// capsule silently degrades to "no session" on 0.2.x — it still mounts, logs no
+// error, but every per-session control is disabled and no status request is
+// ever issued for the open session.
+
+test('client: 0.1.x session-list shape still resolves through `current`', () => {
+  assert.equal(selectCurrentSessionId(undefined), undefined);
+  assert.equal(selectCurrentSessionId({ current: 'session-A' }), 'session-A');
+  assert.equal(selectCurrentSessionId({ current: undefined }), undefined);
+});
+
+test('client: 0.2.x session-list shape resolves the session the main view retains', () => {
+  const list = {
+    ids: ['session-A', 'session-B'],
+    byId: {
+      'session-A': { id: 'session-A', retainedBy: {}, running: false, blank: false },
+      'session-B': { id: 'session-B', retainedBy: { mainView: 1 }, running: false, blank: false },
+    },
+    phase: 'ready',
+    projectionsBySession: {},
+  };
+  assert.equal(selectCurrentSessionId(list), 'session-B');
+});
+
+test('client: 0.2.x list with no retained session resolves to undefined, never a guess', () => {
+  const unretained = {
+    ids: ['session-A'],
+    byId: { 'session-A': { id: 'session-A', retainedBy: { mainView: 0 }, blank: false } },
+    phase: 'ready',
+    projectionsBySession: {},
+  };
+  assert.equal(selectCurrentSessionId(unretained), undefined);
+  // Subagent rows are listed next to their parent but are never "current".
+  const withSubagent = {
+    ids: ['root', 'sub'],
+    byId: {
+      root: { id: 'root', retainedBy: {}, blank: false },
+      sub: { id: 'sub', retainedBy: {}, parentId: 'root', origin: 'subagent', blank: false },
+    },
+    phase: 'ready',
+    projectionsBySession: {},
+  };
+  assert.equal(selectCurrentSessionId(withSubagent), undefined);
+});
+
+test('client: 0.2.x list row without an id field falls back to its key', () => {
+  const list = { ids: ['session-K'], byId: { 'session-K': { retainedBy: { mainView: 1 } } } };
+  assert.equal(selectCurrentSessionId(list), 'session-K');
+});
+
+test('client: capsule renders against the 0.2.x list without crashing', () => {
+  const list = {
+    ids: ['session-Z'],
+    byId: { 'session-Z': { id: 'session-Z', retainedBy: { mainView: 1 }, blank: false } },
+    phase: 'ready',
+    projectionsBySession: {},
+  };
+  const useSessions = (selector: (s: unknown) => string | undefined) => selector(list);
+  const facts = renderTree(fakeReact.createElement(AlignmentCapsule, { t, useSessions }));
+  assert.equal(hasText(facts, 'Off'), true, 'capsule falls back to off before a snapshot arrives');
+  const capsule = facts.find((f) => f.kind === 'element' && f.tag === 'button' && f.props!.className === 'dra-capsule');
+  assert.notEqual(capsule, undefined, 'collapsed capsule button still present');
 });
 
 test('client: clampPosition keeps the floating container inside the viewport', () => {
