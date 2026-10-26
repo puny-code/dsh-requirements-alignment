@@ -76,7 +76,7 @@ Plan → approve → execute → detect direction drift → re-align only when n
 Install the released tarball into your DSH Web profile:
 
 ```powershell
-dsh plugin --profile web add https://github.com/puny-code/dsh-requirements-alignment/releases/download/v0.5.1/dsh-requirements-alignment-0.5.1.tgz
+dsh plugin --profile web add https://github.com/puny-code/dsh-requirements-alignment/releases/download/v0.5.2/dsh-requirements-alignment-0.5.2.tgz
 ```
 
 The desktop app can install the same URL through **插件管理 → 从 URL 安装**. The tarball is self-contained: `lib/` ships inside the package and there is no build step at install time.
