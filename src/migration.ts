@@ -49,7 +49,13 @@ import { Context } from '@deepseek-ai/cordis';
 import { SessionId, SessionStore, type SessionEvent } from '@deepseek-ai/dsh-session';
 import * as sessionApi from '@deepseek-ai/dsh-session';
 import { SessionFormatUnsupportedError, type SessionLocation } from '@deepseek-ai/dsh-session-persistence';
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl';
+// DSH 0.2.x: the JSONL backend stopped exporting a default plugin class and
+// became a plain cordis object plugin (`{ name, Config, apply }`). Mount the
+// module namespace itself — `ctx.plugin()` accepts any `{ apply }` object — and
+// note the legacy `packChunks` field is still tolerated (and ignored) by 0.2.x's
+// schemastery Config, so the 0.1.x config shape stays valid.
+// Verified against @deepseek-ai/dsh-session-persistence-jsonl@0.2.1-rc.2.
+import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl';
 import { assertLegacyMigrationHost } from './persistence-compat.ts';
 
 /** Frozen legacy contract: never substitute a v2 header or handle for this API. */

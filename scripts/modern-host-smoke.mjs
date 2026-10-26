@@ -18,14 +18,18 @@ import UserQuestions from '@deepseek-ai/dsh-user-questions';
 import Storage from '@deepseek-ai/dsh-storage';
 import * as storageJson from '@deepseek-ai/dsh-storage-json';
 import * as storageDomain from '@deepseek-ai/dsh-storage-domain';
-import JsonlPersistence from '@deepseek-ai/dsh-session-persistence-jsonl';
+// DSH 0.2.x dropped the default export: the JSONL backend is now a plain cordis
+// object plugin (`{ name, Config, apply }`). Mount the namespace itself.
+import * as JsonlPersistence from '@deepseek-ai/dsh-session-persistence-jsonl';
 import { mountFixtureProfile } from './fixture-profile.mjs';
 import { apply as scriptedAnswers } from '../src/scripted-provider.ts';
 
 const root = await mkdtemp(join(tmpdir(), 'alignment-modern-host-'));
 const require = createRequire(import.meta.url);
+const pinnedHost = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
+    .devDependencies['@deepseek-ai/dsh-session'];
 const host = JSON.parse(await readFile(require.resolve('@deepseek-ai/dsh-session/package.json'), 'utf8')).version;
-assert.equal(host, '0.1.7-rc.2', 'Acceptance requires the exact audited host version');
+assert.equal(host, pinnedHost, 'Acceptance requires the exact audited host version');
 let savedSession;
 const ctx = new Context();
 try {

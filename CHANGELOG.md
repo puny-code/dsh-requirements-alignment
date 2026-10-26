@@ -2,6 +2,47 @@
 
 All notable changes to this project are documented here.
 
+## 0.5.1 - DSH 0.2.1-rc.2
+
+### Added
+
+- `engines.dsh: >=0.1.0-rc.6 <0.3.0-0`. The host install preflight validates
+  `engines.dsh` when it exists and then skips `peerDependencies` entirely; this
+  is what lets one tarball install on both the 0.1.x and 0.2.x host lines.
+- A tag-driven `release` workflow that packs the repository as-is and publishes
+  the `.tgz` plus `SHA256SUMS.txt`, so the plugin can be installed from a
+  release URL. It deliberately runs no install or build step and fails the run
+  if the packed tarball is missing `lib/`.
+
+### Changed
+
+- `@deepseek-ai/dsh-*` peer ranges widened to
+  `0.1.7-rc.2 || >=0.2.0-rc.1 <0.3.0-0` instead of being repinned, keeping the
+  previous host supported. Prerelease tags must be spelled out in the range:
+  the preflight satisfies peers with `includePrerelease: true`.
+- Development graph moved to 0.2.1-rc.2 (Cordis 4.0.5, Schemastery 3.18.5,
+  Cosmokit 1.8.6).
+- README and compatibility report now target 0.2.1-rc.2 and document installing
+  from the release tarball URL.
+
+### Fixed
+
+- `dsh-session-persistence-jsonl` stopped exporting a default class in 0.2.x; it
+  is now a plain cordis object plugin (`{ name, Config, apply }`).
+  `src/migration.ts` and `scripts/modern-host-smoke.mjs` mount the module
+  namespace instead. The legacy `Config` shape still applies.
+- Version guards that hard-coded `0.1.7-rc.2` now compare against this package's
+  own `devDependencies` pin, so they still fail on graph drift.
+
+### Verified
+
+- `pnpm check` green end to end against 0.2.1-rc.2: two TypeScript checks,
+  ESLint, build, 233/233 tests, and the real-host smoke run (agent loop, session
+  fork, tools, commands, question waterfall, settings, storage, JSONL persistence
+  and a fresh-service reload of both sidecars and shared settings).
+- Packed tarball installed into a disposable scratch profile and the Web UI was
+  started and probed before publication.
+
 ## 0.5.0-rc.1 - DSH 0.1.7-rc.2 release candidate
 
 - Pin the supported host family to 0.1.7-rc.2 and align Cordis, Cosmokit,

@@ -1,4 +1,57 @@
-# DSH compatibility check — 2026-09-29
+# DSH compatibility check — 2026-10-26
+
+## Release: 0.5.1
+
+Target: **DeepSeek Harness 0.2.1-rc.2** (the desktop `0.2.1-rc.2` host). This is
+the first build of this plugin that runs on the 0.2.x host line; 0.5.0-rc.1 and
+everything below it targeted 0.1.7-rc.2 and is kept only as archived evidence.
+
+What had to change for 0.2.x:
+
+- **`engines.dsh` added, `>=0.1.0-rc.6 <0.3.0-0`.** The host's install preflight
+  (`@deepseek-ai/dsh-app-boot` → `unmetRequirements()`) validates `engines.dsh`
+  when present and then **ignores `peerDependencies` entirely**. Without it the
+  12 pinned `0.1.7-rc.2` peers failed the gate and `dsh plugin add` rejected the
+  package before installing anything.
+- **Peer ranges widened, not repinned.** Each `@deepseek-ai/dsh-*` peer is now
+  `0.1.7-rc.2 || >=0.2.0-rc.1 <0.3.0-0`, so the same tarball still satisfies the
+  old host while accepting 0.2.x. A bare `^0.2.1` / `>=0.2.1` range would *not*
+  match the prerelease host — the gate runs `semver.satisfies(..., {includePrerelease: true})`,
+  which needs the prerelease tag spelled out in the range.
+- **JSONL persistence backend has no default export.** 0.2.x ships
+  `dsh-session-persistence-jsonl` as a plain cordis object plugin
+  (`{ name, Config, apply }`). `src/migration.ts` and
+  `scripts/modern-host-smoke.mjs` now use `import * as JsonlSessionPersistence`
+  and mount the namespace. Its `Config` still accepts the 0.1.x shape
+  (`root`, `compression`, `listConcurrency`).
+- **Client slot/global-props contracts are unchanged.** `ui-layout` still
+  publishes `'shell.overlay': { kind: 'list'; scope: 'root' }` and `ui-session`
+  still threads `useSessions` through `GlobalStandardProps`, so the capsule,
+  `/align` commands and the settings form needed no client work.
+- Two version *guards* (a test and the host smoke script) hard-coded
+  `0.1.7-rc.2`. They now compare against this package's own `devDependencies`
+  pin, so the guard still fails if the graph drifts off the audited line.
+
+Verification for this release:
+
+- `pnpm run check` (typecheck ×2, ESLint, build, 233/233 tests, real-host smoke)
+  passes end to end against 0.2.1-rc.2.
+- The real-host smoke run mounts genuine host services — agent loop, session
+  store/fork, tools, commands, user-questions, settings, storage-domain, JSONL
+  persistence — and re-reads sidecars plus the shared setting through a fresh
+  service graph.
+- The packed tarball was installed into a **disposable scratch profile** and the
+  Web UI was started and probed before publication; the desktop profile was
+  never modified.
+
+Known limitations inherited from 0.5.0-rc.1: legacy settings/session migration
+for the new immutable-generation format is still not implemented, and the 15
+legacy storage tests in `migration.test.ts` / `persistence-regression.test.ts`
+remain excluded from the modern runner because they exercise removed host APIs.
+
+---
+
+# Archived DSH compatibility check — 2026-09-29
 
 ## Release candidate: 0.5.0-rc.1
 

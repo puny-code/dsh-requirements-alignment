@@ -1,0 +1,91 @@
+name: release
+
+# 打 tag 即发版，产物就是 DSH 安装用的 tarball：
+#
+#   git tag v0.5.1
+#   git push origin v0.5.1
+#
+# 生成的直链：
+#   https://github.com/puny-code/dsh-requirements-alignment/releases/download/v<version>/dsh-requirements-alignment-<version>.tgz
+#
+# 该链接可直接用于桌面端「插件管理 → 从 URL 安装」，或
+#   dsh plugin --profile <name> add <url>
+#
+# 注意：lib/ 是提交进仓库的产物（CI 不做 npm install / 构建），
+# 发版前本地必须先跑 `pnpm run build` 再提交。
+# 本仓库没有 prepare / prepack 脚本，`npm pack` 只打 package.json `files` 里的文件。
+#
+# 手动补发（tag 已存在、只想重跑流水线）：
+#   Actions → release → Run workflow，tag 填已存在的 tag。
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build and publish
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Pack
+        id: pack
+        run: |
+          set -euo pipefail
+          file="$(npm pack --silent | tail -n1)"
+          if [ -z "$file" ] || [ ! -f "$file" ]; then
+            file="$(ls -1t ./*.tgz | head -n1)"
+          fi
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Verify packed artifact
+        env:
+          FILE: ${{ steps.pack.outputs.file }}
+        run: |
+          set -euo pipefail
+          # lib/ 是提交进仓库的构建产物，缺了它装完运行即报错。
+          # 宁可让流水线红，也不发一个装不起来的包。
+          for want in package/lib/index.js package/cordis.patch.yml package/package.json; do
+            if ! tar -tzf "$FILE" | grep -qx "$want"; then
+              echo "::error::$FILE is missing $want (lib/ must be committed before tagging)"
+              tar -tzf "$FILE" | head -40
+              exit 1
+            fi
+          done
+
+      - name: Checksums
+        run: sha256sum ./*.tgz > SHA256SUMS.txt && cat SHA256SUMS.txt
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+          FILE: ${{ steps.pack.outputs.file }}
+          VERSION: ${{ steps.pack.outputs.version }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" --clobber "$FILE" SHA256SUMS.txt
+          else
+            gh release create "$TAG" \
+              --title "dsh-requirements-alignment $VERSION" \
+              --generate-notes \
+              "$FILE" SHA256SUMS.txt
+          fi

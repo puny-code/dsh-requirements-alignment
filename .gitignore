@@ -1,5 +1,4 @@
 node_modules/
-lib/
 *.tsbuildinfo
 .client-build
 .pnpm-store/
@@ -7,3 +6,9 @@ dogfood/records/
 dogfood/logs/
 
 dogfood/scenarios/
+
+# Release artifacts. `lib/` is intentionally NOT ignored: the tag-driven release
+# workflow packs the repository as-is and never builds, so the compiled output
+# has to be committed before a tag is pushed.
+*.tgz
+SHA256SUMS.txt

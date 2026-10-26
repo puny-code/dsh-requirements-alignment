@@ -8,7 +8,7 @@
 
 **You decide the direction. The agent decides the engineering.**
 
-Current release candidate: **v0.5.0-rc.1**, targeting DeepSeek Harness **0.1.7-rc.2**. Requires Node.js **>=22.18.0**. See the [compatibility report](docs/DSH-COMPATIBILITY.md) for verified behavior and limits.
+Current release: **v0.5.1**, targeting DeepSeek Harness **0.2.1-rc.2**. Requires Node.js **>=22.18.0**. See the [compatibility report](docs/DSH-COMPATIBILITY.md) for verified behavior and limits.
 
 ## The problem
 
@@ -73,11 +73,13 @@ Plan → approve → execute → detect direction drift → re-align only when n
 
 ## Quick start
 
-Install this release candidate into your DSH Web profile:
+Install the released tarball into your DSH Web profile:
 
 ```powershell
-dsh plugin --profile web add dsh-requirements-alignment@0.5.0-rc.1
+dsh plugin --profile web add https://github.com/puny-code/dsh-requirements-alignment/releases/download/v0.5.1/dsh-requirements-alignment-0.5.1.tgz
 ```
+
+The desktop app can install the same URL through **插件管理 → 从 URL 安装**. The tarball is self-contained: `lib/` ships inside the package and there is no build step at install time.
 
 Then use DSH normally.
 

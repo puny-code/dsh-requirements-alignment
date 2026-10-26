@@ -1,0 +1,1 @@
+{"version":3,"file":"session-events.d.ts","sourceRoot":"","sources":["../src/session-events.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,YAAY,EAAE,MAAM,gCAAgC,CAAC;AAEnE,8EAA8E;AAC9E,MAAM,WAAW,kBAAkB;IAC/B,QAAQ,CAAC,MAAM,CAAC,EAAE,SAAS,YAAY,EAAE,CAAC;IAC1C,cAAc,CAAC,IAAI,SAAS,YAAY,EAAE,CAAC;CAC9C;AAED,wBAAgB,aAAa,CAAC,OAAO,EAAE,kBAAkB,GAAG,SAAS,YAAY,EAAE,CAIlF"}

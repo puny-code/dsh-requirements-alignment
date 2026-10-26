@@ -24,6 +24,7 @@ const manifest = JSON.parse(
     readFileSync(new URL('../package.json', import.meta.url), 'utf8')
 ) as {
     name: string;
+    devDependencies: Record<string, string>;
     dsh: { client: { platform: string; inject: string[] } };
 };
 const sourceClient = readFileSync(new URL('../src/client/index.js', import.meta.url), 'utf8');
@@ -76,7 +77,14 @@ test('latest client declarations expose the capsule root slot and session select
     function declaration(name: string): string {
         const path = require.resolve(name + '/package.json');
         const pkg = JSON.parse(readFileSync(path, 'utf8'));
-        assert.equal(pkg.version, '0.1.7-rc.2');
+        // Pin to the host line this build targets instead of a hard-coded literal, so
+        // bumping the devDependency bump cannot silently drift away from the shape
+        // assertions below. The two shapes are the actual contract this test guards:
+        //   - ui-layout still publishes `shell.overlay` as a root list slot (the
+        //     capsule's mounting seat), and
+        //   - ui-session still threads `useSessions` through GlobalStandardProps
+        //     (the capsule's session selector).
+        assert.equal(pkg.version, manifest.devDependencies[name], `${name} must resolve to the pinned host line`);
         return readFileSync(join(dirname(path), pkg.exports['./client'].types), 'utf8');
     }
     assert.match(declaration('@deepseek-ai/dsh-client-ui-layout'), /'shell\.overlay':\s*\{\s*kind: 'list';\s*scope: 'root'/);
